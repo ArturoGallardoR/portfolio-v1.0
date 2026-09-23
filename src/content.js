@@ -26,6 +26,7 @@ export const C = {
     ],
     dvTitle: ['From four hours to 8', 'seconds.'],
     dvText: ['LinkedIn feeds n8n, AI cleans and scores the lead,', "and it lands in Odoo CRM. It's the signature", 'automation in my role at 121 LLC.'],
+    dvHud: ['RAW PUBLIC DATA', 'PIPELINE / ONE LEAD', 'BEFORE / 4 HOURS', 'NOW / ~8 SECONDS'],
     dvCaption: ['One pipeline in production: public data goes', 'in, a clean business record comes out, and the', 'whole trip takes seconds, about 8 per lead.'],
     svcTitle: ['One builder, from goal', 'to production.'],
     svcText: [
@@ -76,6 +77,7 @@ export const C = {
     ],
     dvTitle: ['De cuatro horas a 8', 'segundos.'],
     dvText: ['LinkedIn alimenta n8n, la IA limpia y puntúa, y', 'el lead queda en Odoo CRM. Es la automatización', 'insignia de mi rol en 121 LLC.'],
+    dvHud: ['DATOS PÚBLICOS', 'PIPELINE / UN LEAD', 'ANTES / 4 HORAS', 'AHORA / ~8 SEGUNDOS'],
     dvCaption: ['Un pipeline corriendo en producción: entran', 'datos públicos, sale un registro de negocio', 'limpio y todo tarda unos 8 segundos por lead.'],
     svcTitle: ['Un builder, de la meta', 'a producción.'],
     svcText: [

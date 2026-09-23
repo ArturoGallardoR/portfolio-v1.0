@@ -40,67 +40,189 @@ export function drawHero(c, t) {
   }
 }
 
-const N = 460;
+const N = 480;
 const R = rng(7);
-const pts = Array.from({ length: N }, (_, i) => ({ x: R(), y: R(), p: R() * 6.28, g: i % 23 === 0 }));
-const bars = Array.from({ length: 24 }, (_, i) => 0.25 + 0.75 * ease(i / 23) * (0.7 + 0.3 * R()));
+const pts = Array.from({ length: N }, (_, i) => ({ x: R() * 2 - 1, y: R() * 2 - 1, p: R() * 6.283, s: R() * 2 - 1, q: R(), g: i % 24 === 0 }));
+const TAU = Math.PI * 2;
+const GATES = [0.14, 0.38, 0.62, 0.86];
+const GATE_L = ['LINKEDIN', 'N8N', 'AI', 'ODOO'];
+const SQUEEZE = [0.55, 0.55, 0.16, 0.45];
+const TURNS = 4;
+const MONO = '"basicallyAMono", "JetBrains Mono", monospace';
+const win = (v, a, b) => ease(Math.min(1, Math.max(0, (v - a) / (b - a))));
+const mix = (a, b, m) => [a[0] + (b[0] - a[0]) * m, a[1] + (b[1] - a[1]) * m, a[2] + (b[2] - a[2]) * m];
 
-function cloud(i, t) {
-  const p = pts[i];
-  return [p.x + 0.015 * Math.sin(t * 0.0005 + p.p), p.y + 0.015 * Math.cos(t * 0.0004 + p.p)];
+// Raw public data: loose, drifting field.
+function raw(p, t) {
+  const a = t * 0.00022;
+  return [p.x * 0.6 + 0.06 * Math.sin(p.y * 2.7 + a + p.p), p.y * 0.4 + 0.06 * Math.cos(p.x * 3.1 - a * 1.3 + p.p), 0];
 }
-function bar(i) {
-  const col = i % 24;
-  const k = Math.floor(i / 24);
-  return [0.12 + col * (0.76 / 23), 0.86 - (k / 19) * 0.62 * bars[col]];
+function curve(u, t) {
+  return [-0.62 + 1.24 * u, 0.08 * Math.sin(u * TAU * 1.15 + 0.6) + 0.012 * Math.sin(u * 19 - t * 0.0011)];
 }
-function line(i) {
-  const u = i / (N - 1);
-  const y = Math.pow(u, 1.6) + 0.045 * Math.sin(u * 22) + 0.02 * Math.sin(u * 61);
-  return [0.1 + 0.8 * u, 0.82 - 0.58 * y];
+// Each pipeline stage tightens the stream; AI is where the data gets clean.
+function spread(u) {
+  let s = 0.22;
+  GATES.forEach((g, j) => { s *= 1 + (SQUEEZE[j] - 1) * win(u, g - 0.015, g + 0.05); });
+  return s;
+}
+const lane = (i, t) => (i / N + t * 0.000028) % 1;
+function flow(p, i, t) {
+  const u = lane(i, t);
+  const [cx, cy] = curve(u, t);
+  const s = spread(u) * 0.5;
+  return [cx + (p.q - 0.5) * s, cy + p.s * s * (1 + 0.25 * Math.sin(t * 0.0013 + p.p)), 0];
+}
+// Four turns = four hours of manual work; flat from above, a helix once tilted.
+function helix(k, spin) {
+  const th = k * TURNS * TAU - Math.PI / 2 + spin;
+  const r = 0.12 + 0.2 * k;
+  return [r * Math.cos(th), r * Math.sin(th), (0.5 - k) * 0.9];
+}
+function ring(k, spin) {
+  const th = k * TAU + spin * 3;
+  return [0.06 * Math.cos(th), 0.06 * Math.sin(th), 0];
 }
 
-export function drawDataViz(c, p, t) {
+export function drawDataViz(c, p, t, hud = []) {
   const [x, w, h, d] = fit(c);
   x.fillStyle = DEEP;
   x.fillRect(0, 0, w, h);
-  x.strokeStyle = `rgba(${WHITE},.05)`;
+  x.strokeStyle = `rgba(${WHITE},.04)`;
   x.lineWidth = 1;
   for (let k = 1; k < 10; k++) {
     x.beginPath(); x.moveTo(0, (k * h) / 10); x.lineTo(w, (k * h) / 10); x.stroke();
     x.beginPath(); x.moveTo((k * w) / 10, 0); x.lineTo((k * w) / 10, h); x.stroke();
   }
-  const seg = p * 2;
-  const pos = (i) => {
-    let a, b, m;
-    if (seg < 1) { a = cloud(i, t); b = bar(i); m = ease(Math.min(1, Math.max(0, (seg - 0.15) / 0.7))); }
-    else { a = bar(i); b = line(i); m = ease(Math.min(1, Math.max(0, (seg - 1.1) / 0.6))); }
-    return [(a[0] + (b[0] - a[0]) * m) * w, (a[1] + (b[1] - a[1]) * m) * h];
+
+  const wide = w >= 768 * d;
+  const S = wide ? Math.min(w * 0.6, h * 1.0) : w * 0.78;
+  const shift = win(p, 0.44, 0.6);
+  const ox = wide ? w * (0.42 - 0.15 * shift) : w * 0.5;
+  const oy = wide ? h * 0.5 : h * (0.46 - 0.12 * shift);
+  const tilt = win(p, 0.6, 0.76);
+  const cz = win(p, 0.8, 0.93);
+  const spin = t * 0.00012 + p * 1.6;
+  const phi = tilt * 1.12;
+  const psi = tilt * 0.3;
+  const cf = Math.cos(phi), sf = Math.sin(phi), cp = Math.cos(psi), sp = Math.sin(psi);
+  const proj = ([X, Y, Z]) => {
+    const y1 = Y * cf - Z * sf;
+    const z1 = Y * sf + Z * cf;
+    const x2 = X * cp + z1 * sp;
+    const z2 = -X * sp + z1 * cp;
+    const k = 2.6 / (2.6 - z2);
+    return [ox + x2 * k * S, oy + y1 * k * S, k];
   };
-  if (seg > 1.5) {
-    x.strokeStyle = `rgba(${GREEN},${Math.min(0.9, (seg - 1.5) * 2)})`;
-    x.lineWidth = 1.5 * d;
+  x.font = `700 ${10 * d}px ${MONO}`;
+  x.textBaseline = 'middle';
+
+  // Helix spine: the structure stays behind as a ghost once time collapses.
+  const spine = win(p, 0.56, 0.62);
+  if (spine > 0) {
+    x.strokeStyle = `rgba(${WHITE},${0.14 * spine * (1 - 0.4 * cz)})`;
+    x.lineWidth = d;
     x.beginPath();
-    for (let i = 0; i < N; i += 4) { const [px, py] = pos(i); i ? x.lineTo(px, py) : x.moveTo(px, py); }
+    for (let i = 0; i < N; i += 2) {
+      const [px, py] = proj(helix(i / (N - 1), spin));
+      i ? x.lineTo(px, py) : x.moveTo(px, py);
+    }
     x.stroke();
   }
-  const sz = 2.5 * d;
+
+  // Pipeline gates.
+  const ga = win(p, 0.1, 0.17) * (1 - win(p, 0.42, 0.5));
+  const ut = Math.min(1, Math.max(0, (p - 0.16) / 0.26));
+  if (ga > 0) {
+    x.textAlign = 'center';
+    GATES.forEach((g, j) => {
+      const [gx, gy] = proj([...curve(g, t), 0]);
+      const on = ut >= g;
+      x.strokeStyle = `rgba(${on ? GREEN : WHITE},${(on ? 0.45 : 0.2) * ga})`;
+      x.setLineDash([2 * d, 4 * d]);
+      x.beginPath(); x.moveTo(gx, gy - 0.2 * S); x.lineTo(gx, gy + 0.2 * S); x.stroke();
+      x.setLineDash([]);
+      x.fillStyle = `rgba(${on ? GREEN : WHITE},${(on ? 1 : 0.6) * ga})`;
+      x.fillText(GATE_L[j], gx, gy - 0.2 * S - 14 * d);
+      x.fillText(`0${j + 1}`, gx, gy + 0.2 * S + 14 * d);
+    });
+  }
+
+  // Particles.
+  const sz = 2.2 * d;
   for (let i = 0; i < N; i++) {
-    const [px, py] = pos(i);
-    if (pts[i].g) {
-      x.shadowColor = `rgba(${GREEN},.9)`; x.shadowBlur = 10 * d;
-      x.fillStyle = `rgb(${GREEN})`; x.fillRect(px - sz, py - sz, sz * 2, sz * 2);
-      x.shadowBlur = 0;
+    const pt = pts[i];
+    const k = i / (N - 1);
+    const m0 = win(p, 0.06 + pt.q * 0.08, 0.18 + pt.q * 0.08);
+    const mh = win(p, 0.44 + k * 0.12, 0.49 + k * 0.12);
+    const mc = win(p, 0.8 + (1 - k) * 0.06, 0.87 + (1 - k) * 0.06);
+    let P = raw(pt, t);
+    if (m0 > 0) P = mix(P, flow(pt, i, t), m0);
+    if (mh > 0) P = mix(P, helix(k, spin), mh);
+    if (mc > 0) P = mix(P, ring(k, spin), mc);
+    const [px, py, depth] = proj(P);
+    const clean = win(lane(i, t), 0.6, 0.66) * m0 * (1 - mh);
+    const q = sz * depth * (1 - 0.35 * mc);
+    if (pt.g || mc > 0.5) {
+      x.fillStyle = `rgba(${GREEN},${pt.g ? 1 : 0.9})`;
+      x.fillRect(px - q * 0.7, py - q * 0.7, q * 1.4, q * 1.4);
     } else {
-      x.fillStyle = `rgba(${WHITE},.7)`; x.fillRect(px - sz / 2, py - sz / 2, sz, sz);
+      const a = (0.42 + 0.48 * clean) * (1 - 0.35 * mh) + 0.25 * mh * (depth - 0.8);
+      x.fillStyle = `rgba(${WHITE},${Math.max(0.12, Math.min(0.95, a))})`;
+      x.fillRect(px - q / 2, py - q / 2, q, q);
     }
   }
-  if (seg > 1.6) {
-    const [px, py] = line(N - 1);
-    x.shadowColor = `rgba(${GREEN},.92)`; x.shadowBlur = 18 * d;
-    x.fillStyle = `rgb(${GREEN})`;
-    x.fillRect(px * w - 6 * d, py * h - 6 * d, 12 * d, 12 * d);
+
+  // One lead crossing the pipeline, timed.
+  if (ga > 0) {
+    const [tx, ty] = proj([...curve(ut, t), 0]);
+    x.shadowColor = `rgba(${GREEN},.95)`; x.shadowBlur = 16 * d;
+    x.fillStyle = `rgba(${GREEN},${ga})`;
+    x.fillRect(tx - 5 * d, ty - 5 * d, 10 * d, 10 * d);
     x.shadowBlur = 0;
+    x.textAlign = 'left';
+    x.fillText(`T+ ${(ut * 8).toFixed(1)} S`, tx + 12 * d, ty - 14 * d);
+  }
+
+  // Hour marks on the helix.
+  const ha = tilt * (1 - cz);
+  if (ha > 0) {
+    x.textAlign = 'left';
+    x.fillStyle = `rgba(${WHITE},${0.7 * ha})`;
+    for (let hr = 1; hr <= TURNS; hr++) {
+      const [hx, hy] = proj(helix(hr / TURNS, spin));
+      x.fillRect(hx - 2 * d, hy - 2 * d, 4 * d, 4 * d);
+      x.fillText(`${hr}H`, hx + 10 * d, hy);
+    }
+  }
+
+  // Collapsed: four hours become one ring of ~8 seconds.
+  if (cz > 0) {
+    const [rx, ry, rk] = proj([0, 0, 0]);
+    x.shadowColor = `rgba(${GREEN},.9)`; x.shadowBlur = 20 * d;
+    x.strokeStyle = `rgba(${GREEN},${0.8 * cz})`;
+    x.lineWidth = 1.5 * d;
+    x.beginPath(); x.arc(rx, ry, 0.06 * S * rk, 0, TAU); x.stroke();
+    x.shadowBlur = 0;
+    x.textAlign = 'center';
+    x.fillStyle = `rgba(${GREEN},${cz})`;
+    x.fillText('~8 S', rx, ry);
+    x.fillStyle = `rgba(${WHITE},${0.6 * cz})`;
+    x.fillText('4 H → ~8 S  ·  1800×', rx, ry + 0.06 * S * rk + 22 * d);
+  }
+
+  // Stage index.
+  const stage = p < 0.1 ? 0 : p < 0.44 ? 1 : p < 0.8 ? 2 : 3;
+  const hx = (wide ? 54 : 20) * d;
+  const hy = h * (wide ? 0.2 : 0.14);
+  for (let j = 0; j < 4; j++) {
+    x.fillStyle = j === stage ? `rgb(${GREEN})` : `rgba(${WHITE},${j < stage ? 0.6 : 0.2})`;
+    x.fillRect(hx + j * 10 * d, hy - 3 * d, 6 * d, 6 * d);
+  }
+  if (hud[stage]) {
+    x.textAlign = 'left';
+    x.fillStyle = `rgba(${WHITE},.75)`;
+    x.fillText(hud[stage], hx + 48 * d, hy);
   }
 }
 

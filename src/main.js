@@ -22,6 +22,7 @@ let menuOpen = false;
 let loaded = false;
 let observer;
 let cells = [];
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function render() {
   const t = C[lang];
@@ -283,7 +284,7 @@ function tick(time) {
   const dv = $('.dv');
   const pd = progress(dv);
   const dr = dv.getBoundingClientRect();
-  if (dr.bottom > 0 && dr.top < innerHeight) drawDataViz($('#dvCanvas'), pd, time);
+  if (dr.bottom > 0 && dr.top < innerHeight) drawDataViz($('#dvCanvas'), pd, RM ? 0 : time, C[lang].dvHud);
   $('#dvBottom').classList.toggle('on', pd > 0.04 && pd < 0.45);
   $('#dvCenter').classList.toggle('on', pd > 0.5 && pd < 0.97);
 

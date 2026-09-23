@@ -179,7 +179,8 @@ canvas { display: block; width: 100%; height: 100%; }
 .dv { position: relative; z-index: 10; height: min(10000px, calc(var(--vh) * 7.5)); background: var(--deep-black); color: var(--smoke-white); }
 .dv__sticky { position: sticky; top: 0; height: var(--vh); overflow: hidden; }
 .dv__canvas { position: absolute; inset: 0; }
-.dv__veil { position: absolute; inset: 0; z-index: 1; background: linear-gradient(to right, rgba(17, 18, 13, .9), transparent); pointer-events: none; }
+.dv__veil { position: absolute; inset: 0; z-index: 1; background: linear-gradient(to top, rgba(17, 18, 13, .92) 10%, transparent 50%); pointer-events: none; }
+@media (min-width: 768px) { .dv__veil { background: linear-gradient(to left, rgba(17, 18, 13, .88) 15%, transparent 55%); } }
 .dv__center { position: absolute; z-index: 2; left: 0; bottom: 0; width: 100%; padding: var(--pad); display: flex; flex-direction: column; gap: 20px; }
 @media (min-width: 768px) { .dv__center { top: 59.8%; bottom: auto; left: 50%; width: 50%; translate: 0 -50%; } }
 .dv__ctitle { max-width: calc(512px * var(--fw)); }
