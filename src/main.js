@@ -289,7 +289,7 @@ function tick(time) {
 
   const svc = $('#services');
   const sr = svc.getBoundingClientRect();
-  const wipe = innerHeight * (innerWidth < 768 ? 0.35 : 0.55);
+  const wipe = innerHeight * (innerWidth < 768 ? 0.6 : 0.8);
   drawPixelBand($('#svcPixels'), clamp((innerHeight - sr.top) / wipe), sr.top < innerHeight && sr.top > innerHeight - wipe);
   $$('[data-card]').forEach((c) => {
     const r = c.getBoundingClientRect();
