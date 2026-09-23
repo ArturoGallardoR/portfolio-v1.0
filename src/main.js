@@ -289,7 +289,8 @@ function tick(time) {
 
   const svc = $('#services');
   const sr = svc.getBoundingClientRect();
-  drawPixelBand($('#svcPixels'), clamp((innerHeight - sr.top) / innerHeight), sr.top < innerHeight && sr.top > -innerHeight);
+  const wipe = innerHeight * (innerWidth < 768 ? 0.35 : 0.55);
+  drawPixelBand($('#svcPixels'), clamp((innerHeight - sr.top) / wipe), sr.top < innerHeight && sr.top > innerHeight - wipe);
   $$('[data-card]').forEach((c) => {
     const r = c.getBoundingClientRect();
     if (r.bottom > 0 && r.top < innerHeight) drawCard(c, +c.dataset.card, time);
